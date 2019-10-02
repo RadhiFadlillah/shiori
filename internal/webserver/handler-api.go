@@ -213,12 +213,16 @@ func (h *handler) apiGetTags(w http.ResponseWriter, r *http.Request, ps httprout
 	tags, err := h.DB.GetTags()
 	checkError(err)
 
+	resp := map[string]interface{}{
+		"tags": tags,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&tags)
+	err = json.NewEncoder(w).Encode(&resp)
 	checkError(err)
 }
 
-// apiRenameTag is handler for PUT /api/tag
+// apiRenameTag is handler for PUT /api/tags
 func (h *handler) apiRenameTag(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Make sure session still valid
 	err := h.validateSession(r)
@@ -246,6 +250,10 @@ func (h *handler) apiInsertBookmark(w http.ResponseWriter, r *http.Request, ps h
 	book := model.Bookmark{}
 	err = json.NewDecoder(r.Body).Decode(&book)
 	checkError(err)
+
+	// Retain the user-supplied title and excerpt
+	userTitle := book.Title
+	userExcerpt := book.Excerpt
 
 	// Create bookmark ID
 	book.ID, err = h.DB.CreateNewID("bookmark")
@@ -276,6 +284,14 @@ func (h *handler) apiInsertBookmark(w http.ResponseWriter, r *http.Request, ps h
 		if err != nil && isFatalErr {
 			panic(fmt.Errorf("failed to process bookmark: %v", err))
 		}
+	}
+
+	// Use the user-supplied title and excerpt if they exist
+	if userExcerpt != "" {
+		book.Excerpt = userExcerpt
+	}
+	if userTitle != "" {
+		book.Title = userTitle
 	}
 
 	// Save bookmark to database
@@ -316,7 +332,7 @@ func (h *handler) apiDeleteBookmark(w http.ResponseWriter, r *http.Request, ps h
 		os.Remove(archivePath)
 	}
 
-	fmt.Fprint(w, 1)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // apiUpdateBookmark is handler for PUT /api/bookmarks
@@ -590,8 +606,12 @@ func (h *handler) apiGetAccounts(w http.ResponseWriter, r *http.Request, ps http
 	accounts, err := h.DB.GetAccounts(database.GetAccountsOptions{})
 	checkError(err)
 
+	resp := map[string]interface{}{
+		"accounts": accounts,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(&accounts)
+	err = json.NewEncoder(w).Encode(&resp)
 	checkError(err)
 }
 
@@ -658,7 +678,7 @@ func (h *handler) apiUpdateAccount(w http.ResponseWriter, r *http.Request, ps ht
 		h.UserCache.Delete(request.Username)
 	}
 
-	fmt.Fprint(w, 1)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // apiDeleteAccount is handler for DELETE /api/accounts
@@ -689,5 +709,5 @@ func (h *handler) apiDeleteAccount(w http.ResponseWriter, r *http.Request, ps ht
 		}
 	}
 
-	fmt.Fprint(w, 1)
+	w.WriteHeader(http.StatusNoContent)
 }

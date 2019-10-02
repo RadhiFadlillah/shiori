@@ -1,6 +1,7 @@
 package webserver
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -46,7 +47,7 @@ func ServeApp(DB database.DB, dataDir string, address string, port int) error {
 	router.POST("/api/logout", hdl.apiLogout)
 	router.GET("/api/bookmarks", hdl.apiGetBookmarks)
 	router.GET("/api/tags", hdl.apiGetTags)
-	router.PUT("/api/tag", hdl.apiRenameTag)
+	router.PUT("/api/tags", hdl.apiRenameTag)
 	router.POST("/api/bookmarks", hdl.apiInsertBookmark)
 	router.DELETE("/api/bookmarks", hdl.apiDeleteBookmark)
 	router.PUT("/api/bookmarks", hdl.apiUpdateBookmark)
@@ -62,7 +63,13 @@ func ServeApp(DB database.DB, dataDir string, address string, port int) error {
 
 	// Route for panic
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, arg interface{}) {
-		http.Error(w, fmt.Sprint(arg), 500)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+
+		resp := map[string]interface{}{
+			"error": arg.(error).Error(),
+		}
+		_ = json.NewEncoder(w).Encode(&resp)
 	}
 
 	// Create server

@@ -250,7 +250,7 @@ export default {
                     return response.json();
                 })
                 .then(json => {
-                    this.tags = json;
+                    this.tags = json.tags;
                     this.loading = false;
                 })
                 .catch(err => {
@@ -766,7 +766,7 @@ export default {
                     };
 
                     this.dialog.loading = true;
-                    fetch("/api/tag", {
+                    fetch("/api/tags", {
                         method: "PUT",
                         body: JSON.stringify(newData),
                         headers: { "Content-Type": "application/json" },
